@@ -138,39 +138,23 @@ LOW_THRESHOLD = 0.15
 _leak_phrase_embeddings = []
 _non_leak_phrase_embeddings = []
 _embeddings_cached = False
-_use_mlx = True
 _embedding_model = None
 
 
 def _load_model():
-    global _model, _tokenizer, _model_loaded, _use_mlx, _embedding_model
+    global _model, _tokenizer, _model_loaded
     
     if _model_loaded and _model is not None:
         return
     
-    # mlx-lm 먼저 시도
     try:
         print("Loading mlx-community/Qwen2-0.5B-Instruct...")
         _model, _tokenizer = lm.load("mlx-community/Qwen2-0.5B-Instruct")
         _model_loaded = True
-        _use_mlx = True
         print("Model loaded successfully!")
         _cache_phrase_embeddings()
-        return
     except Exception as e:
-        print(f"MLX load failed: {e}")
-    
-    # mlx 실패 시 sentence-transformers 폴백
-    try:
-        print("Falling back to sentence-transformers (BGE)...")
-        from sentence_transformers import SentenceTransformer
-        _embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-        _model_loaded = True
-        _use_mlx = False
-        print("BGE model loaded successfully!")
-        _cache_phrase_embeddings()
-    except Exception as e:
-        print(f"BGE fallback also failed: {e}")
+        print(f"Model load failed: {e}")
 
 
 def _cache_phrase_embeddings():
@@ -194,28 +178,24 @@ def _cache_phrase_embeddings():
 def _get_embedding(text: str) -> np.ndarray:
     _load_model()
     
-    if _use_mlx:
-        tokens = _tokenizer.encode(text)
-        if not tokens:
-            return np.zeros(384)
-        
-        input_ids = mx.array(tokens)
-        
-        if hasattr(_model, 'model') and hasattr(_model.model, 'embed_tokens'):
-            token_embeddings = _model.model.embed_tokens(input_ids[None, :])
-            embedding = mx.mean(token_embeddings, axis=1)[0]
-        else:
-            outputs = _model(input_ids[None, :])
-            if isinstance(outputs, tuple):
-                hidden_states = outputs[0]
-            else:
-                hidden_states = outputs
-            embedding = mx.mean(hidden_states, axis=1)[0]
-        
-        embedding_np = np.array(embedding)
-    else:
-        embedding_np = _embedding_model.encode(text, normalize_embeddings=True)
+    tokens = _tokenizer.encode(text)
+    if not tokens:
+        return np.zeros(384)
     
+    input_ids = mx.array(tokens)
+    
+    if hasattr(_model, 'model') and hasattr(_model.model, 'embed_tokens'):
+        token_embeddings = _model.model.embed_tokens(input_ids[None, :])
+        embedding = mx.mean(token_embeddings, axis=1)[0]
+    else:
+        outputs = _model(input_ids[None, :])
+        if isinstance(outputs, tuple):
+            hidden_states = outputs[0]
+        else:
+            hidden_states = outputs
+        embedding = mx.mean(hidden_states, axis=1)[0]
+    
+    embedding_np = np.array(embedding)
     embedding_norm = np.linalg.norm(embedding_np, axis=-1, keepdims=True)
     embedding_np = embedding_np / np.clip(embedding_norm, 1e-8, np.inf)
     return embedding_np
