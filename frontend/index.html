@@ -1028,8 +1028,10 @@ async function startScan() {
   const topic = document.getElementById('topicInput').value.trim();
   if (!topic) { alert('탐지 주제를 입력하세요.'); return; }
 
-  const maxDepth = parseInt(document.getElementById('maxDepth').value) || 2;
-  const maxPages = parseInt(document.getElementById('maxPages').value) || 5;
+  const maxDepthInput = document.getElementById('maxDepth').value;
+  const maxPagesInput = document.getElementById('maxPages').value;
+  const maxDepth = maxDepthInput === '' ? 2 : parseInt(maxDepthInput);
+  const maxPages = maxPagesInput === '' ? 5 : parseInt(maxPagesInput);
 
   const kwEl = document.getElementById('customKeywords');
   const kwText = kwEl ? kwEl.value.trim() : '';
