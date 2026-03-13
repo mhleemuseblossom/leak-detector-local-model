@@ -32,6 +32,41 @@ SEARCH_ENGINES = [
     "https://duckduckgo.com/html/?q={query}",
 ]
 
+# 불법 스트리밍 플레이어/CDN 도메인
+STREAMING_PLAYERS = {
+    # 주요 스트리밍 플레이어
+    "doodstream.com", "dood.la", "dood.sh", "dood.ws",
+    "streamtape.com", "streamtape.cc", "streamtape.net",
+    "mixdrop.co", "mixdrop.sx", "mixdrop.to", "mixdrop.gl",
+    "filemoon.to", "filemoon.sx", "filemoon.io",
+    "vidplay.online", "vidplay.org", "vidplay.net",
+    "streamwish.com", "streamwish.to", "streamwish.net",
+    "streamsu.com", "streamsu.net",
+    "vidoza.net", "vidoza.co",
+    "upstream.to", "upstream.chat",
+    "vtube.to", "vtube.io",
+    "highload.to", "highload.sx",
+    "voe.sx", "voe.tv", "voe.net",
+    "vido.com", "vido.io",
+    "trailer.to", "trailer365.com",
+    "supervideo.it", "supervideo.cc",
+    "vupload.io", "vupload.com",
+    "streamhub.to", "streamhub.gg",
+    "vidoflash.com", "vidoflash.net",
+    "filelist.io", "filelist.ro",
+    "rapidvideo.com", "rapidvideo.io",
+    "oload.tv", "oload.stream",
+    "streamango.com", "streamango.to",
+    "streamcherry.com", "cherrystreaming.com",
+    "yewtu.be", "yewtu.gg",  # YouTube 인스턴스
+    # 한국 불법 사이트常见 도메인
+    "tfreeca22.com", "tfreeca21.com", "tfreeca20.com",
+    "aniplustv.com", "aniplus.co.kr",
+    "dramafree.com", "drama-go.com",
+    "moviefree7.com", "movie365.co.kr",
+    "koreandrama.org", "kdramafree.com",
+}
+
 
 def is_valid_url(url: str) -> bool:
     try:
@@ -53,12 +88,20 @@ def is_valid_url(url: str) -> bool:
         return False
 
 
-def extract_text_and_links(html: str, base_url: str) -> tuple[str, str, list[str]]:
-    """HTML에서 제목, 텍스트, 링크 추출"""
+def extract_text_and_links(html: str, base_url: str) -> tuple[str, str, list[str], list[str]]:
+    """HTML에서 제목, 텍스트, 링크, 스트리밍 도메인 추출"""
     soup = BeautifulSoup(html, "lxml")
 
-    # 불필요한 태그 제거
-    for tag in soup(["script", "style", "nav", "footer", "header", "aside", "iframe"]):
+    # 불필요한 태그 제거 (단, iframe은 추출 후 제거)
+    iframes = soup.find_all("iframe")
+    iframe_links = []
+    for iframe in iframes:
+        src = iframe.get("src", "")
+        if src and src.startswith("http"):
+            iframe_links.append(src)
+        iframe.decompose()
+
+    for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
         tag.decompose()
 
     title = soup.title.string.strip() if soup.title and soup.title.string else "제목 없음"
@@ -81,8 +124,34 @@ def extract_text_and_links(html: str, base_url: str) -> tuple[str, str, list[str
         full_url = urljoin(base_url, href)
         if is_valid_url(full_url):
             links.append(full_url)
+    
+    # iframe + 링크合并
+    all_links = list(set(links + iframe_links))
+    
+    # 스트리밍 플레이어 도메인 추출
+    streaming_domains = extract_streaming_domains(all_links)
+    
+    return title, full_text, all_links, streaming_domains
 
-    return title, full_text, list(set(links))
+
+def extract_streaming_domains(urls: list[str]) -> list[str]:
+    """URL 목록에서 스트리밍 플레이어 도메인 추출"""
+    domains = []
+    for url in urls:
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+            # www 제거
+            if domain.startswith("www."):
+                domain = domain[4:]
+            # 스트리밍 플레이어 목록과 비교
+            for player in STREAMING_PLAYERS:
+                if player in domain:
+                    domains.append(domain)
+                    break
+        except:
+            continue
+    return list(set(domains))
 
 
 class PlaywrightCrawler:
@@ -208,13 +277,14 @@ async def search_keyword(keyword: str) -> list[str]:
 
 
 class LeakCrawler:
-    def __init__(self, session_id: str, on_progress: Callable):
+    def __init__(self, session_id: str, on_progress: Callable, max_depth: int = 2, max_pages: int = 5):
         self.session_id = session_id
         self.on_progress = on_progress
         self.playwright_crawler = PlaywrightCrawler()
         self.visited_urls: set = set()
-        self.max_depth = 2
-        self.max_pages_per_keyword = 5
+        self.visited_domains: set = set()
+        self.max_depth = max_depth
+        self.max_pages_per_keyword = max_pages
 
     async def start(self):
         pw_ok = await self.playwright_crawler.start()
@@ -233,23 +303,35 @@ class LeakCrawler:
             html = await fetch_with_httpx(url)
         return html
 
-    async def crawl_url(self, url: str, keyword: str, depth: int = 0) -> list[dict]:
-        """단일 URL 크롤링 + 링크 기반 확산"""
+    async def crawl_url(self, url: str, keyword: str, depth: int = 0, domain_expansion: bool = False) -> list[dict]:
+        """단일 URL 크롤링 + 링크 기반 확산 + 도메인 확장"""
         if url in self.visited_urls or depth > self.max_depth:
             return []
         if not is_valid_url(url):
             return []
 
+        # 도메인 추출
+        parsed_url = urlparse(url)
+        current_domain = parsed_url.netloc.lower()
+        if current_domain.startswith("www."):
+            current_domain = current_domain[4:]
+
+        # 도메인 확장 모드에서 새 도메인이면 기록
+        if domain_expansion:
+            if current_domain in self.visited_domains:
+                return []
+            self.visited_domains.add(current_domain)
+
         self.visited_urls.add(url)
         results = []
 
-        await self.on_progress("crawl", f"📄 크롤링 중 (depth={depth}): {url[:80]}")
+        await self.on_progress("crawl", f"📄 크롤링 중 (depth={depth}, domain={current_domain[:30]}): {url[:60]}")
 
         html = await self.fetch_page(url)
         if not html:
             return []
 
-        title, text, links = extract_text_and_links(html, url)
+        title, text, links, streaming_domains = extract_text_and_links(html, url)
 
         results.append({
             "url": url,
@@ -257,10 +339,12 @@ class LeakCrawler:
             "title": title,
             "text": text,
             "links": links,
-            "depth": depth
+            "streaming_domains": streaming_domains,
+            "depth": depth,
+            "domain": current_domain
         })
 
-        await self.on_progress("page", f"✅ 페이지 수집: {title[:50]} ({len(text)}자, 링크 {len(links)}개)")
+        await self.on_progress("page", f"✅ 페이지 수집: {title[:50]} (텍스트 {len(text)}자, 링크 {len(links)}개, 스트리밍 {len(streaming_domains)}개)")
 
         # 링크 기반 확산 (depth+1)
         if depth < self.max_depth:
@@ -270,6 +354,18 @@ class LeakCrawler:
                 if link not in self.visited_urls:
                     await asyncio.sleep(0.5)
                     child_results = await self.crawl_url(link, keyword, depth + 1)
+                    results.extend(child_results)
+
+        # 도메인 확장 (새 도메인 발견 시 재귀 크롤링)
+        for stream_domain in streaming_domains:
+            if stream_domain not in self.visited_domains:
+                self.visited_domains.add(stream_domain)
+                await self.on_progress("system", f"🔗 새 스트리밍 도메인 발견: {stream_domain}")
+                # 해당 도메인으로 링크 찾기
+                domain_links = [l for l in links if stream_domain in l]
+                if domain_links:
+                    await asyncio.sleep(0.5)
+                    child_results = await self.crawl_url(domain_links[0], keyword, depth + 1, domain_expansion=True)
                     results.extend(child_results)
 
         return results

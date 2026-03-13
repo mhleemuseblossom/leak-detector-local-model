@@ -44,6 +44,8 @@ session_tasks: dict[str, bool] = {}  # session_id -> is_running
 class ScanRequest(BaseModel):
     topic: str
     custom_keywords: Optional[list[str]] = None
+    max_depth: int = 2
+    max_pages: int = 5
 
 
 @app.on_event("startup")
@@ -96,7 +98,7 @@ async def start_scan(req: ScanRequest, background_tasks: BackgroundTasks):
     progress_queues[session_id] = asyncio.Queue()
     session_tasks[session_id] = True
 
-    background_tasks.add_task(run_scan_pipeline, session_id, req.topic, req.custom_keywords)
+    background_tasks.add_task(run_scan_pipeline, session_id, req.topic, req.custom_keywords, req.max_depth, req.max_pages)
     return {"session_id": session_id, "message": "스캔 시작됨"}
 
 
@@ -123,7 +125,7 @@ async def stream_progress(session_id: str):
                               headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
-async def run_scan_pipeline(session_id: str, topic: str, custom_keywords: Optional[list[str]]):
+async def run_scan_pipeline(session_id: str, topic: str, custom_keywords: Optional[list[str]], max_depth: int = 2, max_pages: int = 5):
     """전체 스캔 파이프라인"""
     queue = progress_queues.get(session_id)
 
@@ -144,15 +146,16 @@ async def run_scan_pipeline(session_id: str, topic: str, custom_keywords: Option
             await push("info", f"✅ 커스텀 키워드 {len(keywords)}개 사용")
         else:
             keywords = await asyncio.to_thread(generate_keywords_with_prompt, topic)
+            keywords    = ['무료 만화']
             await push("info", f"✅ 키워드 {len(keywords)}개 생성됨")
 
         await save_keywords(session_id, keywords)
         await push("keywords", "키워드 생성 완료", {"keywords": keywords})
 
         # ── 2단계: 크롤링 ──
-        await push("stage", "🕷️ 웹 크롤링 시작...", {"stage": 2})
+        await push("stage", "🕷️ 웹 크롤링 시작... (depth=" + str(max_depth) + ", pages=" + str(max_pages) + ")", {"stage": 2})
 
-        crawler = LeakCrawler(session_id=session_id, on_progress=push)
+        crawler = LeakCrawler(session_id=session_id, on_progress=push, max_depth=max_depth, max_pages=max_pages)
         await crawler.start()
 
         all_pages = await crawler.crawl_keywords(keywords)
@@ -209,6 +212,7 @@ async def run_scan_pipeline(session_id: str, topic: str, custom_keywords: Option
                         "risk_level": result["risk_level"],
                         "risk_score": result["risk_score"],
                         "leak_types": result["leak_types"],
+                        "reason": result.get("reason", ""),
                         "summary": result["summary"]
                     }
                 })

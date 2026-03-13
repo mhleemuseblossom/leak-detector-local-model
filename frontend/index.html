@@ -196,6 +196,19 @@
 
   .field { margin-bottom: 16px; }
 
+  .field-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .field-row .field {
+    flex: 1;
+  }
+
+  .field-row input {
+    width: 100%;
+  }
+
   .btn {
     width: 100%;
     padding: 13px;
@@ -464,6 +477,16 @@
     margin-bottom: 12px;
   }
 
+  .leak-reason {
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(0,212,255,0.1);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
   .leak-types {
     display: flex;
     flex-wrap: wrap;
@@ -729,6 +752,17 @@
         <input type="text" id="topicInput" placeholder="예: 무료 만화, 드라마 다시보기" />
       </div>
 
+      <div class="field-row">
+        <div class="field">
+          <label>링크 확산 깊이</label>
+          <input type="number" id="maxDepth" value="2" min="0" max="5" />
+        </div>
+        <div class="field">
+          <label>페이지 수</label>
+          <input type="number" id="maxPages" value="5" min="1" max="20" />
+        </div>
+      </div>
+
       <!-- <div class="field">
         <label>커스텀 키워드 (선택, 줄바꿈 구분)</label>
         <textarea id="customKeywords" rows="3" placeholder="키워드1&#10;키워드2&#10;키워드3&#10;(비워두면 HuggingFace가 자동 생성)"></textarea>
@@ -909,6 +943,9 @@ async function startScan() {
   const topic = document.getElementById('topicInput').value.trim();
   if (!topic) { alert('탐지 주제를 입력하세요.'); return; }
 
+  const maxDepth = parseInt(document.getElementById('maxDepth').value) || 2;
+  const maxPages = parseInt(document.getElementById('maxPages').value) || 5;
+
   const kwEl = document.getElementById('customKeywords');
   const kwText = kwEl ? kwEl.value.trim() : '';
   const customKeywords = kwText ? kwText.split('\n').map(k => k.trim()).filter(Boolean) : [];
@@ -930,13 +967,18 @@ async function startScan() {
   setStatus('scanning', '스캔 중');
   setStage(0);
 
-  addLog('stage', '🚀 스캔 시작: ' + topic);
+  addLog('stage', '🚀 스캔 시작: ' + topic + ' (depth=' + maxDepth + ', pages=' + maxPages + ')');
 
   try {
     const res = await fetch(API + '/scan', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ topic, custom_keywords: customKeywords.length > 0 ? customKeywords : null })
+      body: JSON.stringify({ 
+        topic, 
+        custom_keywords: customKeywords.length > 0 ? customKeywords : null,
+        max_depth: maxDepth,
+        max_pages: maxPages
+      })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -1015,6 +1057,7 @@ function addLeakCard(leak) {
   const grid = document.getElementById('leakGrid');
   const score = Math.round((leak.risk_score || 0) * 100);
   const types = (leak.leak_types || []).map(t => `<span class="leak-type-tag">${escHtml(t)}</span>`).join('');
+  const reason = leak.reason ? `<div class="leak-reason">📝 분석 근거: ${escHtml(leak.reason)}</div>` : '';
 
   const card = document.createElement('div');
   card.className = `leak-card ${leak.risk_level}`;
@@ -1027,6 +1070,7 @@ function addLeakCard(leak) {
       <span class="risk-badge ${leak.risk_level}">${leak.risk_level}</span>
     </div>
     <div class="leak-summary">${escHtml(leak.summary || '')}</div>
+    ${reason}
     <div class="leak-types">${types}</div>
     <div class="score-bar">
       <div class="score-fill ${leak.risk_level}" style="width:${score}%"></div>

@@ -146,8 +146,8 @@ def _load_model():
         return
     
     try:
-        print("Loading mlx-community/Qwen2-1.5B-Instruct...")
-        _model, _tokenizer = lm.load("mlx-community/Qwen2-1.5B-Instruct")
+        print("Loading mlx-community/Qwen2-0.5B-Instruct...")
+        _model, _tokenizer = lm.load("mlx-community/Qwen2-0.5B-Instruct")
         _model_loaded = True
         print("Model loaded successfully!")
         _cache_phrase_embeddings()
@@ -258,7 +258,7 @@ def generate_keywords_with_prompt(topic: str) -> List[str]:
 - 무료 스트리밍, 토렌트, 파일공유, 업로더 사이트 관련 키워드 포함
 - 한국어/영어 혼합 가능
 - 드라마, 영화, 애니메이션, 음악 등 다양한 콘텐츠 유형 고려
-- 10-15개 키워드 생성
+- 1개 키워드 생성
 
 답변은 반드시 아래 JSON 형식으로만 응답하세요:
 {{"keywords": ["키워드1", "키워드2", ...]}}
@@ -270,7 +270,7 @@ def generate_keywords_with_prompt(topic: str) -> List[str]:
 """
     
     try:
-        response = lm.generate(_model, _tokenizer, prompt, max_tokens=300, temperature=0.7)
+        response = lm.generate(_model, _tokenizer, prompt, max_tokens=300)
         output = response.strip()
         
         import re
@@ -394,7 +394,7 @@ def analyze_with_prompt(url: str, title: str, text: str) -> Dict:
 - NONE: 불법 무료 공유 없음
 
 답변은 반드시 아래 JSON 형식으로만 응답하세요:
-{{"risk_level": "HIGH|MEDIUM|LOW|NONE", "risk_score": 0.0~1.0, "leak_types": ["유출유형1"], "summary": "요약"}}<|im_end|>
+{{"risk_level": "HIGH|MEDIUM|LOW|NONE", "risk_score": 0.0~1.0, "leak_types": ["유출유형1"], "reason": "분석 이유 (어떤 키워드/문구때문에 판단했는지)", "summary": "전체 요약"}}<|im_end|>
 <|im_start|>user
 URL: {url}
 제목: {title}
@@ -403,7 +403,7 @@ URL: {url}
 """
     
     try:
-        response = lm.generate(_model, _tokenizer, prompt, max_tokens=300, temperature=0.1)
+        response = lm.generate(_model, _tokenizer, prompt, max_tokens=300)
         output = response.strip()
         
         import re
@@ -415,6 +415,7 @@ URL: {url}
                 "risk_level": data.get("risk_level", "NONE"),
                 "risk_score": float(data.get("risk_score", 0.0)),
                 "leak_types": data.get("leak_types", []),
+                "reason": data.get("reason", ""),
                 "summary": data.get("summary", "분석 완료")
             }
     except Exception as e:
