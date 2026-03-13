@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SENTINEL — 정보 유출 탐지 시스템</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #030508;
@@ -27,7 +26,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Syne', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -92,7 +91,7 @@
   }
 
   .logo-sub {
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(10px * var(--font-scale));
     color: var(--accent);
     letter-spacing: 2px;
@@ -103,7 +102,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(12px * var(--font-scale));
     color: var(--muted);
   }
@@ -179,7 +178,7 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     color: var(--text);
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(13px * var(--font-scale));
     padding: 10px 14px;
     border-radius: 6px;
@@ -202,7 +201,7 @@
     padding: 13px;
     border: none;
     border-radius: 6px;
-    font-family: 'Syne', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: calc(13px * var(--font-scale));
     font-weight: 700;
     letter-spacing: 2px;
@@ -235,7 +234,7 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     color: var(--text);
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 13px;
     padding: 10px 14px;
     border-radius: 6px;
@@ -271,7 +270,7 @@
     padding: 13px;
     border: none;
     border-radius: 6px;
-    font-family: 'Syne', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 2px;
@@ -342,7 +341,7 @@
   }
 
   .log-count {
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(11px * var(--font-scale));
     color: var(--accent);
   }
@@ -350,7 +349,7 @@
   .log-body {
     flex: 1;
     overflow-y: auto;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(11px * var(--font-scale));
     line-height: 1.7;
     scrollbar-width: thin;
@@ -500,7 +499,7 @@
   .risk-badge {
     padding: 4px 10px;
     border-radius: 4px;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 11px;
     font-weight: 700;
     flex-shrink: 0;
@@ -511,7 +510,7 @@
   .risk-badge.LOW { background: rgba(16,185,129,0.2); color: var(--ok); border: 1px solid rgba(16,185,129,0.3); }
 
   .leak-url {
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(11px * var(--font-scale));
     color: var(--accent);
     word-break: break-all;
@@ -636,7 +635,7 @@
     padding: 2px 6px;
     background: rgba(0,212,255,0.1);
     border-radius: 3px;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(10px * var(--font-scale));
     color: var(--accent);
   }
@@ -654,7 +653,7 @@
     background: rgba(0,212,255,0.08);
     border: 1px solid rgba(0,212,255,0.2);
     border-radius: 20px;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(12px * var(--font-scale));
     color: var(--accent);
     animation: kw-pop 0.3s ease;
@@ -699,7 +698,7 @@
   .progress-label {
     display: flex;
     justify-content: space-between;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(10px * var(--font-scale));
     color: var(--muted);
     margin-bottom: 6px;
@@ -784,14 +783,14 @@
   .history-topic { font-size: calc(13px * var(--font-scale)); font-weight: 600; }
 
   .history-meta {
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(10px * var(--font-scale));
     color: var(--muted);
     margin-top: 4px;
   }
 
   .history-badge {
-    font-family: 'Space Mono', monospace;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: calc(11px * var(--font-scale));
     padding: 3px 8px;
     border-radius: 3px;
@@ -1185,10 +1184,9 @@ function renderFinalResults(results) {
           <a class="leak-url" href="${escHtml(p.url)}" target="_blank">${escHtml(p.url.substring(0,60))}${p.url.length>60?'...':''}</a>
           <div style="font-size:11px;color:var(--muted);margin-top:3px">${escHtml(p.title||'')}</div>
         </td>
-        <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--warn)">${escHtml(p.source_keyword||'')}</td>
-        <td><span class="depth-badge">${p.depth}</span></td>
-        <td style="font-family:'Space Mono',monospace;font-size:11px">${p.links_found}</td>
-        <td style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted)">${new Date(p.crawled_at).toLocaleTimeString('ko-KR')}</td>
+<td style="font-family:'Consolas','Monaco','Courier New',monospace;font-size:11px;color:var(--warn)">${escHtml(p.source_keyword||'')}</td>
+      <td style="font-family:'Consolas','Monaco','Courier New',monospace;font-size:11px">${p.links_found}</td>
+      <td style="font-family:'Consolas','Monaco','Courier New',monospace;font-size:10px;color:var(--muted)">${new Date(p.crawled_at).toLocaleTimeString('ko-KR')}</td>
       </tr>
     `).join('');
     document.getElementById('pagesEmpty').style.display = 'none';
