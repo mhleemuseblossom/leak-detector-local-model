@@ -10,6 +10,17 @@ _model = None
 _tokenizer = None
 _model_loaded = False
 
+LEAK_TYPE_MAPPING = {
+    "streaming": "무료 스트리밍/시청 관련",
+    "movie": "영화 무료 제공",
+    "drama": "드라마 무료 제공",
+    "animation": "애니메이션 무료 제공",
+    "torrent": "토렌트/파일공유",
+    "quality": "고화질 불법 복제",
+    "ad": "광고/회원 유도",
+    "server": "불법 스트리밍 서버"
+}
+
 LEAK_PHRASES_WITH_TYPES = [
     # 무료 시청 / 스트리밍
     ("무료 보기", "streaming"),
@@ -396,7 +407,7 @@ def analyze_with_prompt(url: str, title: str, text: str) -> Dict:
 - NONE: 불법 무료 공유 없음
 
 답변은 반드시 아래 JSON 형식으로만 응답하세요:
-{{"risk_level": "HIGH|MEDIUM|LOW|NONE", "risk_score": 0.0~1.0, "leak_types": ["유출유형1"], "reason": "분석 이유 (어떤 키워드/문구때문에 판단했는지)", "summary": "전체 요약"}}<|im_end|>
+{{"risk_level": "HIGH|MEDIUM|LOW|NONE", "risk_score": 0.0~1.0, "leak_types": ["streaming"], "summary": "전체 요약"}}<|im_end|>
 <|im_start|>user
 URL: {url}
 제목: {title}
@@ -413,11 +424,14 @@ URL: {url}
         if json_match:
             import json
             data = json.loads(json_match.group())
+            leak_types = data.get("leak_types", [])
+            reason_parts = [LEAK_TYPE_MAPPING.get(lt, lt) for lt in leak_types if lt in LEAK_TYPE_MAPPING]
+            reason = ", ".join(reason_parts) if reason_parts else "관련 키워드 감지"
             return {
                 "risk_level": data.get("risk_level", "NONE"),
                 "risk_score": float(data.get("risk_score", 0.0)),
-                "leak_types": data.get("leak_types", []),
-                "reason": data.get("reason", ""),
+                "leak_types": leak_types,
+                "reason": reason,
                 "summary": data.get("summary", "분석 완료")
             }
     except Exception as e:
